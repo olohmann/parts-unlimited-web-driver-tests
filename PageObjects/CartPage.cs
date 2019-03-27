@@ -19,7 +19,7 @@ namespace PartsUnlimited.WebDriverTests.PageObjects
             get
             {
                 return driver
-                    .FindElements(By.XPath($"//a[starts-with(@href,'/Store/Details/')]"))
+                    .FindElements(By.XPath($"//div[@id='cart-summary']//a[starts-with(@href,'/Store/Details/')]"))
                     .Select(l => l.Text)
                     .ToList();
             }

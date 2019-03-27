@@ -33,7 +33,8 @@ namespace PartsUnlimited.WebDriverTests
                     .GoToCategoryPage(Categories.Brakes)
                     .SelectFirstArticle(out selectedArticleTitle)
                     .AddToCart();
-                CollectionAssert.Contains(new CartPage(dw.Driver).ArticleTitles, selectedArticleTitle);
+                var titlesInCart = new CartPage(dw.Driver).ArticleTitles;
+                CollectionAssert.Contains(titlesInCart, selectedArticleTitle, $"Article '{selectedArticleTitle}' not in cart as expected.");
             }
 
         }
@@ -56,12 +57,13 @@ namespace PartsUnlimited.WebDriverTests
                     .AddToCart()
                     .RemoveArticleWithTitle(articleToRemoveTitle);
                 var titlesInCart = new CartPage(dw.Driver).ArticleTitles;
+                var titlesFlat = String.Join(',', titlesInCart.Cast<string>().ToArray());
                 CollectionAssert
                     .DoesNotContain(
                         titlesInCart,
                         articleToRemoveTitle,
-                        $"Title '{articleToRemoveTitle}' was not removed from cart as expected.");
-                Assert.AreEqual(2, titlesInCart.Count, "Unexpected number of items in cart.");
+                        $"Title '{articleToRemoveTitle}' was not removed from cart as expected. Titles in cart are: {titlesFlat}.");
+                Assert.AreEqual(2, titlesInCart.Count, $"Unexpected number of items in cart. Title to remove was '{articleToRemoveTitle}'. Titles in cart are: {titlesFlat}.");
             }
         }
     }

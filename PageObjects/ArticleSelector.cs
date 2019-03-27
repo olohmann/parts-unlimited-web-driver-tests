@@ -12,7 +12,7 @@ namespace PartsUnlimited.WebDriverTests.PageObjects
         public static DetailPage SelectArticleWithIndex(IWebDriver driver, int index, out string selectedArticleTitle)
         {
             var a = driver
-                .FindElements(By.XPath($"//a[starts-with(@href,'/Store/Details/')]"))
+                .FindElements(By.XPath($"//a[starts-with(@href,'/Store/Details/')][@title]"))
                 .ElementAt(index);
             selectedArticleTitle = a.GetAttribute("title");
             a.Click();

@@ -26,9 +26,9 @@ namespace PartsUnlimited.WebDriverTests.TestApi
         // https://blogs.msdn.microsoft.com/devops/2015/09/04/supplying-run-time-parameters-to-tests/
         // The settings can be set as well by using environment variables.    
         // To set the env variables on your dev machine use PowerShell like this:
-        // [Environment]::SetEnvironmentVariable("Environment_TestScreenSize","512x1080","User")
-        // [Environment]::SetEnvironmentVariable("Environment_TestWebDriverName","Chrome","User")
-        // [Environment]::SetEnvironmentVariable("Environment_TestTargetUrl","http://mysite.azurewebsites.net/","User")
+        // [Environment]::SetEnvironmentVariable("TestScreenSize","512x1080","User")
+        // [Environment]::SetEnvironmentVariable("TestWebDriverName","Chrome","User")
+        // [Environment]::SetEnvironmentVariable("TestTargetUrl","http://mysite.azurewebsites.net/","User")
 
         // The setting priority is:
         // 1. RunSettings in build task override...
@@ -88,17 +88,17 @@ namespace PartsUnlimited.WebDriverTests.TestApi
 
         private static string GetDriverName(TestContext testContext)
         {
-            return GetSetting(testContext, "Environment_TestWebDriverName", "Chrome");
+            return GetSetting(testContext, "TestWebDriverName", "Chrome");
         }
 
         private static string GetTargetUrl(TestContext testContext)
         {
-            return GetSetting(testContext, "Environment_TestTargetUrl", "http://localhost:8000/");
+            return GetSetting(testContext, "TestTargetUrl", "http://localhost:8000/");
         }
 
         private static Size GetDriverSize(TestContext testContext)
         {
-            var sizeString = GetSetting(testContext, "Environment_TestScreenSize", "1920x1080");
+            var sizeString = GetSetting(testContext, "TestScreenSize", "1920x1080");
             var sizeMatch = Regex.Match(sizeString, "(?<width>\\d+)x(?<height>\\d+)");
             if (!sizeMatch.Success)
             {
@@ -110,57 +110,43 @@ namespace PartsUnlimited.WebDriverTests.TestApi
 
         private static ConcurrentDictionary<string, string> settingsCache = new ConcurrentDictionary<string, string>();
 
-        private static string GetEnvironmentVariableKeyFromKey(string key) 
-        {
-            const string environmentPrefix = "Environment_";
-            int keyPrefixIndex = key.IndexOf(environmentPrefix);
-            if (keyPrefixIndex == 0)
-            {
-                return key.Remove(keyPrefixIndex, environmentPrefix.Length);
-            }
-            else 
-            {
-                return key;
-            }
-        }
-
         private static string GetSetting(TestContext testContext, string key, string defaultValue)
         {
             string value = null;
             if (settingsCache.TryGetValue(key, out value))
             {
+                testContext.WriteLine($"Using {(key)}: {value}");
                 return value;
             }
             
-
             value = defaultValue;
             string envValue = null;
-            string envKey = GetEnvironmentVariableKeyFromKey(key);
 
-            envValue = Environment.GetEnvironmentVariable(envKey, EnvironmentVariableTarget.Machine);
+            envValue = Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine);
             if (envValue != null)
             {
                 value = envValue;
             }
 
-            envValue = Environment.GetEnvironmentVariable(envKey, EnvironmentVariableTarget.User);
+            envValue = Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.User);
             if (envValue != null)
             {
                 value = envValue;
             }
 
-            envValue = Environment.GetEnvironmentVariable(envKey);
+            envValue = Environment.GetEnvironmentVariable(key);
             if (envValue != null)
             {
                 value = envValue;
             }
 
-            if (testContext.Properties.ContainsKey(key))
+            // Prepend Environment_ for flat out key mappings
+            if (testContext.Properties.ContainsKey("Environment_" + key))
             {
-                value = (string)testContext.Properties[key];
+                value = (string)testContext.Properties["Environment_" + key];
             }
 
-            testContext.WriteLine($"Using {key}: {value}");
+            testContext.WriteLine($"Using {(key)}: {value}");
             settingsCache[key] = value;
             return value;
         }

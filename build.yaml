@@ -1,0 +1,19 @@
+pool:
+  name: Hosted VS2017
+
+steps:
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet publish UI Tests'
+  inputs:
+    command: publish
+    publishWebProjects: false
+    arguments: '--output $(Build.ArtifactStagingDirectory)'
+    zipAfterPublish: false
+- task: CopyFiles@2
+  displayName: 'Copy ChromeDriver.exe to ArtifactStagingDirectory'
+  inputs:
+    Contents: '**/*chromedriver*'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+    flattenFolders: true
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'

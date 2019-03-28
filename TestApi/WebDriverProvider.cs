@@ -48,6 +48,17 @@ namespace PartsUnlimited.WebDriverTests.TestApi
             return new WebDriverWrapper(driver, testContext);
         }
 
+        private static string GetTestAttachmentOutputDirectory(TestContext testContext)
+        {
+            string path = GetSetting(testContext, "TestAttachmentOutputDirectory", Path.Combine(Path.GetTempPath(), "putestattachments"));
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            return path;
+        }
+
         public static void DumpLogs(TestContext testContext, IWebDriver driver)
         {
             foreach (var logType in driver.Manage().Logs.AvailableLogTypes)
@@ -56,7 +67,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
                     driver.Manage().Logs.GetLog(logType)
                     .Select(le => le.Message)
                     .ToArray();
-                var path = Path.Combine(Path.GetTempPath(), testContext.TestName + $".Logs.{logType}.log");
+                var path = Path.Combine(GetTestAttachmentOutputDirectory(testContext), testContext.TestName + $".Logs.{logType}.log");
                 File.WriteAllLines(path, log);
                 // https://github.com/Microsoft/testfx/issues/394
                 // testContext.AddResultFile(path);
@@ -66,7 +77,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
         public static void DumpPageSource(TestContext testContext, IWebDriver driver)
         {
             var pageSource = driver.PageSource;
-            var path = Path.Combine(Path.GetTempPath(), testContext.TestName + ".PageSource.xml");
+            var path = Path.Combine(GetTestAttachmentOutputDirectory(testContext), testContext.TestName + ".PageSource.xml");
             File.WriteAllText(path, pageSource);
             // https://github.com/Microsoft/testfx/issues/394
             // testContext.AddResultFile(path);
@@ -75,7 +86,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
         public static void DumpScreenshot(TestContext testContext, IWebDriver driver)
         {
             var screenshot = ((RemoteWebDriver)driver).GetScreenshot().AsByteArray;
-            var path = Path.Combine(Path.GetTempPath(), testContext.TestName + ".png");
+            var path = Path.Combine(GetTestAttachmentOutputDirectory(testContext), testContext.TestName + ".png");
             File.WriteAllBytes(path, screenshot);
             // https://github.com/Microsoft/testfx/issues/394
             // testContext.AddResultFile(path);

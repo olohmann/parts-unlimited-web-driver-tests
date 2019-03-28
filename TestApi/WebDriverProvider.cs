@@ -2,6 +2,7 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
+using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.IE;
 using OpenQA.Selenium.Remote;
 using System;
@@ -47,6 +48,17 @@ namespace PartsUnlimited.WebDriverTests.TestApi
             return new WebDriverWrapper(driver, testContext);
         }
 
+        private static string GetTestAttachmentOutputDirectory(TestContext testContext)
+        {
+            string path = GetSetting(testContext, "TestAttachmentOutputDirectory", Path.Combine(Path.GetTempPath(), "putestattachments"));
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            return path;
+        }
+
         public static void DumpLogs(TestContext testContext, IWebDriver driver)
         {
             foreach (var logType in driver.Manage().Logs.AvailableLogTypes)
@@ -55,7 +67,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
                     driver.Manage().Logs.GetLog(logType)
                     .Select(le => le.Message)
                     .ToArray();
-                var path = Path.Combine(Path.GetTempPath(), testContext.TestName + $".Logs.{logType}.log");
+                var path = Path.Combine(GetTestAttachmentOutputDirectory(testContext), testContext.TestName + $".Logs.{logType}.log");
                 File.WriteAllLines(path, log);
                 // https://github.com/Microsoft/testfx/issues/394
                 // testContext.AddResultFile(path);
@@ -65,7 +77,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
         public static void DumpPageSource(TestContext testContext, IWebDriver driver)
         {
             var pageSource = driver.PageSource;
-            var path = Path.Combine(Path.GetTempPath(), testContext.TestName + ".PageSource.xml");
+            var path = Path.Combine(GetTestAttachmentOutputDirectory(testContext), testContext.TestName + ".PageSource.xml");
             File.WriteAllText(path, pageSource);
             // https://github.com/Microsoft/testfx/issues/394
             // testContext.AddResultFile(path);
@@ -74,7 +86,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
         public static void DumpScreenshot(TestContext testContext, IWebDriver driver)
         {
             var screenshot = ((RemoteWebDriver)driver).GetScreenshot().AsByteArray;
-            var path = Path.Combine(Path.GetTempPath(), testContext.TestName + ".png");
+            var path = Path.Combine(GetTestAttachmentOutputDirectory(testContext), testContext.TestName + ".png");
             File.WriteAllBytes(path, screenshot);
             // https://github.com/Microsoft/testfx/issues/394
             // testContext.AddResultFile(path);
@@ -83,7 +95,17 @@ namespace PartsUnlimited.WebDriverTests.TestApi
         private static void DumpDriverInfo(IWebDriver driver)
         {
             var remoteDriver = (RemoteWebDriver)driver;
-            Console.WriteLine($"Using {remoteDriver.Capabilities.GetCapability("BrowserName")}, version {remoteDriver.Capabilities.GetCapability("Version")}.");
+            var browserName = remoteDriver.Capabilities.GetCapability("browserName") as string;
+            var browserInfo = remoteDriver.Capabilities.GetCapability(browserName) as Dictionary<string,object>;
+            var browserInfoFlat = 
+                browserInfo == null ? "" : 
+                string.Join(',', 
+                browserInfo
+                    .Cast<KeyValuePair<string,object>>()
+                    .Select(kvp=>$"{kvp.Key}=[{kvp.Value.ToString()}]")
+                    .ToArray()
+                );
+            Console.WriteLine($"WebDriver Capabilities:[BrowserName={browserName},BrowserInfo=[{browserInfoFlat}]]");
         }
 
         private static string GetDriverName(TestContext testContext)
@@ -93,7 +115,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
 
         private static string GetTargetUrl(TestContext testContext)
         {
-            return GetSetting(testContext, "TestTargetUrl", "http://localhost:8000/");
+            return GetSetting(testContext, "TestTargetUrl", "https://localhost:8000/");
         }
 
         private static Size GetDriverSize(TestContext testContext)
@@ -118,7 +140,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
                 testContext.WriteLine($"Using {(key)}: {value}");
                 return value;
             }
-            
+
             value = defaultValue;
             string envValue = null;
 
@@ -176,13 +198,17 @@ namespace PartsUnlimited.WebDriverTests.TestApi
             {
                 driver = new EdgeDriver();
             }
+            else if (string.Equals(driverName, "Firefox", StringComparison.InvariantCultureIgnoreCase))
+            {
+                driver = new FirefoxDriver();
+            }
             else if (string.Equals(driverName, "Internet Explorer", StringComparison.InvariantCultureIgnoreCase))
             {
                 driver = new InternetExplorerDriver();
             }
             else
             {
-                throw new ArgumentException($"Unknown driver {driverName}. Try 'Chrome','ChromeHeadless','Edge','Internet Explorer' or 'PhantomJS'.");
+                throw new ArgumentException($"Unknown driver {driverName}. Try 'Chrome','ChromeHeadless','Edge','Internet Explorer' or 'Firefox'.");
             }
 
             return driver;

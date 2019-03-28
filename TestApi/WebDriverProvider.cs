@@ -2,6 +2,7 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
+using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.IE;
 using OpenQA.Selenium.Remote;
 using System;
@@ -83,7 +84,17 @@ namespace PartsUnlimited.WebDriverTests.TestApi
         private static void DumpDriverInfo(IWebDriver driver)
         {
             var remoteDriver = (RemoteWebDriver)driver;
-            Console.WriteLine($"Using {remoteDriver.Capabilities.GetCapability("BrowserName")}, version {remoteDriver.Capabilities.GetCapability("Version")}.");
+            var browserName = remoteDriver.Capabilities.GetCapability("browserName") as string;
+            var browserInfo = remoteDriver.Capabilities.GetCapability(browserName) as Dictionary<string,object>;
+            var browserInfoFlat = 
+                browserInfo == null ? "" : 
+                string.Join(',', 
+                browserInfo
+                    .Cast<KeyValuePair<string,object>>()
+                    .Select(kvp=>$"{kvp.Key}=[{kvp.Value.ToString()}]")
+                    .ToArray()
+                );
+            Console.WriteLine($"WebDriver Capabilities:[BrowserName={browserName},BrowserInfo=[{browserInfoFlat}]]");
         }
 
         private static string GetDriverName(TestContext testContext)
@@ -93,7 +104,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
 
         private static string GetTargetUrl(TestContext testContext)
         {
-            return GetSetting(testContext, "TestTargetUrl", "http://localhost:8000/");
+            return GetSetting(testContext, "TestTargetUrl", "https://localhost:8000/");
         }
 
         private static Size GetDriverSize(TestContext testContext)
@@ -118,7 +129,7 @@ namespace PartsUnlimited.WebDriverTests.TestApi
                 testContext.WriteLine($"Using {(key)}: {value}");
                 return value;
             }
-            
+
             value = defaultValue;
             string envValue = null;
 
@@ -176,13 +187,17 @@ namespace PartsUnlimited.WebDriverTests.TestApi
             {
                 driver = new EdgeDriver();
             }
+            else if (string.Equals(driverName, "Firefox", StringComparison.InvariantCultureIgnoreCase))
+            {
+                driver = new FirefoxDriver();
+            }
             else if (string.Equals(driverName, "Internet Explorer", StringComparison.InvariantCultureIgnoreCase))
             {
                 driver = new InternetExplorerDriver();
             }
             else
             {
-                throw new ArgumentException($"Unknown driver {driverName}. Try 'Chrome','ChromeHeadless','Edge','Internet Explorer' or 'PhantomJS'.");
+                throw new ArgumentException($"Unknown driver {driverName}. Try 'Chrome','ChromeHeadless','Edge','Internet Explorer' or 'Firefox'.");
             }
 
             return driver;
